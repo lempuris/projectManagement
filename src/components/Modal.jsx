@@ -9,6 +9,9 @@ const Modal = forwardRef(function Modal({ children, buttonCaption }, ref) {
       open() {
         dialog.current.showModal();
       },
+      close() {
+        dialog.current.close();
+      },
     };
   });
   return createPortal(

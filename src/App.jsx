@@ -1,8 +1,9 @@
-import { use, useState } from "react";
+import { useState, useEffect } from "react";
 import NewProject from "./components/NewProject";
 import NoProjectSelected from "./components/NoProjectSelected";
 import ProjectSideBar from "./components/ProjectsSidebar";
 import SelectedProject from "./components/SelectedProject";
+import { api } from "./services/api";
 
 function App() {
   const [projectState, setProjectState] = useState({
@@ -11,27 +12,32 @@ function App() {
     tasks: [],
   });
 
-  function handleAddTask(text) {
-    setProjectState((prevState) => {
-      const taskId = Math.random();
-      const newTask = {
-        text: text,
-        projectId: prevState.selectedProjectId,
-        id: taskId,
-      };
-      return {
-        ...prevState,
-        tasks: [...prevState.tasks, newTask],
-      };
+  useEffect(() => {
+    api.getProjects().then(projects => {
+      setProjectState(prev => ({ ...prev, projects }));
     });
+  }, []);
+
+  async function handleAddTask(text) {
+    try {
+      const newTask = await api.createTask({
+        text,
+        projectId: projectState.selectedProjectId
+      });
+      setProjectState(prev => ({
+        ...prev,
+        tasks: [...prev.tasks, newTask]
+      }));
+    } catch (error) {
+      console.error('Failed to add task:', error);
+    }
   }
-  function handleDeleteTask(id) {
-    setProjectState((prevState) => {
-      return {
-        ...prevState,
-        tasks: prevState.tasks.filter((task) => task.id !== id),
-      };
-    });
+  async function handleDeleteTask(id) {
+    await api.deleteTask(id);
+    setProjectState(prev => ({
+      ...prev,
+      tasks: prev.tasks.filter(task => task.id !== id)
+    }));
   }
 
   function handleStartAddProject() {
@@ -43,18 +49,17 @@ function App() {
     });
   }
 
-  function handleAddProject(projectData) {
-    setProjectState((prevState) => {
-      const newProject = {
-        ...projectData,
-        id: Math.random(),
-      };
-      return {
-        ...prevState,
+  async function handleAddProject(projectData) {
+    try {
+      const newProject = await api.createProject(projectData);
+      setProjectState(prev => ({
+        ...prev,
         selectedProjectId: undefined,
-        projects: [...prevState.projects, newProject],
-      };
-    });
+        projects: [...prev.projects, newProject]
+      }));
+    } catch (error) {
+      console.error('Failed to add project:', error);
+    }
   }
   function handleCancelAddProject() {
     setProjectState((prevState) => {
@@ -65,25 +70,23 @@ function App() {
     });
   }
 
-  function handleSelectProject(id) {
-    setProjectState((prevState) => {
-      return {
-        ...prevState,
-        selectedProjectId: id,
-      };
-    });
+  async function handleSelectProject(id) {
+    const tasks = await api.getTasks(id);
+    setProjectState(prev => ({
+      ...prev,
+      selectedProjectId: id,
+      tasks
+    }));
   }
 
-  function handleDeleteProject() {
-    setProjectState((prevState) => {
-      return {
-        ...prevState,
-        selectedProjectId: undefined,
-        projects: prevState.projects.filter(
-          (project) => project.id !== projectState.selectedProjectId
-        ),
-      };
-    });
+  async function handleDeleteProject() {
+    await api.deleteProject(projectState.selectedProjectId);
+    setProjectState(prev => ({
+      ...prev,
+      selectedProjectId: undefined,
+      projects: prev.projects.filter(p => p.id !== projectState.selectedProjectId),
+      tasks: []
+    }));
   }
 
   const selectedProject = projectState.projects.find(

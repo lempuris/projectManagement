@@ -18,8 +18,8 @@ export default function NewProject({ onAddProject, onCancel }) {
 
     if (
       enteredTitle.trim().length === 0 ||
-      enteredDescription.trim() === 0 ||
-      enteredDueDate.trim() === 0
+      enteredDescription.trim().length === 0 ||
+      enteredDueDate.trim().length === 0
     ) {
       modal.current.open();
       return;
